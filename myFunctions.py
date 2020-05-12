@@ -104,7 +104,29 @@ def unwrap(q, phase):
     return q
 
 
-def get3Zeros(delay):
+def getLocalZero(delay):
+    # Return the local minimum avoiding widths < 1 (maths indeterminacy) and positive delays
+    # If out is positive -> Unique or widest and minimum point
+    # If out is negative -> Minimum point but not the widest
+    # If out is NaN -> No Local Minimum found
+    localZero = np.NaN
+    peaks, prop = find_peaks(-delay, width=(None, None))
+    wdt = prop["widths"]
+    erridx = (wdt > 1) & (delay[peaks] < 0)
+    peaks = peaks[erridx]
+    if peaks.size == 1:
+        localZero = peaks[0]
+    elif peaks.size > 1:
+        idxW = np.argmax(wdt)
+        idxP = np.argmin(delay[peaks])
+        if idxW == idxP:
+            localZero = peaks[idxP]
+        else:
+            localZero = -peaks[idxP]
+    return localZero
+
+
+def get3Zeros_deprecated(delay):
     # Return the index of Local minimuns
     mIDX = np.array([np.nan, np.nan, np.nan])
     # Split into 3 freq ranges
