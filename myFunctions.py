@@ -126,6 +126,15 @@ def getLocalZero(delay):
     return localZero
 
 
+def get3Zeros(delay):
+    iDel = np.array([np.NaN, np.NaN, np.NaN])
+    iDel[0] = getLocalZero(delay[0:999])
+    idel = getLocalZero(delay[900:1200])
+    iDel[1] = idel + 900 if idel >= 0 else idel - 900
+    idel = getLocalZero(delay[1001:-1])
+    iDel[2] = idel + 1001 if idel >= 0 else idel - 1001
+    return iDel
+
 def get3Zeros_deprecated(delay):
     # Return the index of Local minimuns
     mIDX = np.array([np.nan, np.nan, np.nan])
