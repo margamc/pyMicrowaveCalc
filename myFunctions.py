@@ -36,7 +36,6 @@ def fCalcSPMod2(t1, r1, z1, r2, z2, r3, r4, z3, r5, z0, fn):
     warnings.filterwarnings("default")
     return fPath2SP(PATH1, PATH2, y0)
 
-
 def fCalcSPMod1(r1, z1, r2, r3, z2, r4, z0, fn):
     warnings.filterwarnings("ignore")
     y1 = 1 / z1 if (z1 != 0) else 0
@@ -63,7 +62,6 @@ def fCalcSPMod1(r1, z1, r2, r3, z2, r4, z0, fn):
     PATH2 = R3 @ TL2 @ R4
     warnings.filterwarnings("default")
     return fPath2SP(PATH1, PATH2, y0)
-
 
 def fPath2SP(PATH1, PATH2, y0):
     warnings.filterwarnings("ignore")
@@ -94,7 +92,6 @@ def fPath2SP(PATH1, PATH2, y0):
     warnings.filterwarnings("default")
     return S11, S12, S21, S22
 
-
 def unwrap(q, phase):
     # Find NaN's and Inf's
     p = q
@@ -102,7 +99,6 @@ def unwrap(q, phase):
     # Unwrap finite data (skip non finite entries)
     q[indf] = np.unwrap(p[indf], phase)
     return q
-
 
 def getLocalZero(delay):
     # Return the local minimum avoiding widths < 1 (maths indeterminacy) and positive delays
@@ -112,7 +108,7 @@ def getLocalZero(delay):
     localZero = np.NaN
     peaks, prop = find_peaks(-delay, width=(None, None))
     wdt = prop["widths"]
-    erridx = (wdt > 1) & (delay[peaks] < 0)
+    erridx = (wdt >= 2) & (delay[peaks] < 0)
     peaks = peaks[erridx]
     if peaks.size == 1:
         localZero = peaks[0]
@@ -124,7 +120,6 @@ def getLocalZero(delay):
         else:
             localZero = -peaks[idxP]
     return localZero
-
 
 def get3Zeros(delay):
     iDel = np.array([np.NaN, np.NaN, np.NaN])
@@ -161,8 +156,8 @@ def get3Zeros_deprecated(delay):
         mIDX[2] = TF2[prom2[0]] + 1099
     return mIDX
 
-
 def get_BW(delay, mdelIDX, mdel):
+    # TODO: Quitar comprobaciones para sacarlas al main
     warnings.filterwarnings("ignore")
     iBW = np.empty((6))
     iBW[:] = np.NaN
@@ -177,8 +172,8 @@ def get_BW(delay, mdelIDX, mdel):
     warnings.filterwarnings("default")
     return iBW
 
-
 def get_BW1dB(S21, mdelIDX, mdel):
+    # TODO: Quitar comprobaciones para sacarlas al main
     warnings.filterwarnings("ignore")
     iBW1dB = np.empty((6))
     iBW1dB[:] = np.NaN
@@ -194,8 +189,8 @@ def get_BW1dB(S21, mdelIDX, mdel):
     warnings.filterwarnings("default")
     return iBW1dB
 
-
 def get_BW3dB(S21, mdelIDX, mdel):
+    # TODO: Quitar comprobaciones para sacarlas al main
     warnings.filterwarnings("ignore")
     iBW3dB = np.empty((6))
     iBW3dB[:] = np.NaN
