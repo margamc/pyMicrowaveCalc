@@ -36,6 +36,7 @@ def fCalcSPMod2(t1, r1, z1, r2, z2, r3, r4, z3, r5, z0, fn):
     warnings.filterwarnings("default")
     return fPath2SP(PATH1, PATH2, y0)
 
+
 def fCalcSPMod1(r1, z1, r2, r3, z2, r4, z0, fn):
     warnings.filterwarnings("ignore")
     y1 = 1 / z1 if (z1 != 0) else 0
@@ -62,6 +63,7 @@ def fCalcSPMod1(r1, z1, r2, r3, z2, r4, z0, fn):
     PATH2 = R3 @ TL2 @ R4
     warnings.filterwarnings("default")
     return fPath2SP(PATH1, PATH2, y0)
+
 
 def fPath2SP(PATH1, PATH2, y0):
     warnings.filterwarnings("ignore")
@@ -92,6 +94,7 @@ def fPath2SP(PATH1, PATH2, y0):
     warnings.filterwarnings("default")
     return S11, S12, S21, S22
 
+
 def unwrap(q, phase):
     # Find NaN's and Inf's
     p = q
@@ -99,6 +102,7 @@ def unwrap(q, phase):
     # Unwrap finite data (skip non finite entries)
     q[indf] = np.unwrap(p[indf], phase)
     return q
+
 
 def getLocalZero(delay):
     # Return the local minimum avoiding widths < 1 (maths indeterminacy) and positive delays
@@ -121,14 +125,129 @@ def getLocalZero(delay):
             localZero = -peaks[idxP]
     return localZero
 
-def get3Zeros(delay):
-    iDel = np.array([np.NaN, np.NaN, np.NaN])
+
+def getNZeros(nZeros, delay):
+    iDel = np.repeat(np.NaN, nZeros)
     iDel[0] = getLocalZero(delay[0:999])
-    idel = getLocalZero(delay[900:1200])
-    iDel[1] = idel + 900 if idel >= 0 else idel - 900
-    idel = getLocalZero(delay[1001:-1])
-    iDel[2] = idel + 1001 if idel >= 0 else idel - 1001
+    if nZeros >= 2:
+        idel = getLocalZero(delay[900:1200])
+        iDel[1] = idel + 900 if idel >= 0 else idel - 900
+    if nZeros == 3:
+        idel = getLocalZero(delay[1001:-1])
+        iDel[2] = idel + 1001 if idel >= 0 else idel - 1001
     return iDel
+
+
+def getMeasures(nZeros, delay, SS21, SS11, SS22):
+    warnings.filterwarnings("ignore", message="invalid value encountered in ")
+    warnings.filterwarnings("ignore", message="divide by zero encountered in ")
+    # Get NGD indexes
+    iDel = getNZeros(nZeros, delay)
+    # NGD array for NGD Values
+    Del = np.repeat(np.NaN, nZeros)
+    # Desired S-Parameters
+    S21 = np.repeat(np.NaN, nZeros)
+    S11 = np.repeat(np.NaN, nZeros)
+    S22 = np.repeat(np.NaN, nZeros)
+    # 3 desired bandwidths
+    iBW = np.repeat(np.NaN, 2 * nZeros)
+    iBW1dB = np.repeat(np.NaN, 2 * nZeros)
+    iBW3dB = np.repeat(np.NaN, 2 * nZeros)
+    S21dB = 20 * np.log10(abs(SS21))
+    # Auxiliar for errors
+    err = np.repeat(np.NaN, nZeros)
+    for nn, idel in enumerate(iDel):
+        if not np.isnan(idel):
+            if idel >= 0:
+                Del[nn] = delay[int(idel)]
+                S21[nn] = np.abs(SS21[int(idel)])
+                S11[nn] = np.abs(SS11[int(idel)])
+                S22[nn] = np.abs(SS22[int(idel)])
+            else:
+                iDel[nn] = np.abs(idel)
+                Del[nn] = delay[int(iDel[nn])]
+                S21[nn] = np.abs(SS21[int(iDel[nn])])
+                S11[nn] = np.abs(SS11[int(iDel[nn])])
+                S22[nn] = np.abs(SS22[int(iDel[nn])])
+                err[nn] = -1
+
+            # NGD BANDWIDTH -> iBW
+            # Find positive delays at the left side of NGD point
+            aux, = np.nonzero(delay[0:int(iDel[nn])] >= 0)
+            if aux.size > 0:
+                # Save last positive delay
+                iBW[2 * nn] = aux[-1]
+            # Find positive delay at the right side of NGD point
+            aux, = np.nonzero(delay[int(iDel[nn]):] >= 0)
+            if aux.size > 0:
+                # Save first positive delay
+                iBW[2 * nn + 1] = aux[0] + int(iDel[nn])
+
+            # 1DB BANDWIDTH -> iBW1dB
+            aux, = np.nonzero(
+                (S21dB[0:int(iDel[nn])] >= S21dB[int(iDel[nn])] + 1) | (
+                        S21dB[0:int(iDel[nn])] <= S21dB[int(iDel[nn])] - 1))
+            if aux.size > 0:
+                iBW1dB[2 * nn] = aux[-1]
+            aux, = np.nonzero(
+                (S21dB[int(iDel[nn]):-1] >= S21dB[int(iDel[nn])] + 1) | (
+                        S21dB[int(iDel[nn]):-1] <= S21dB[int(iDel[nn])] - 1))
+            if aux.size > 0:
+                iBW1dB[2 * nn + 1] = aux[0] + int(iDel[nn])
+
+            # 3DB BANDWIDTH -> iBW3dB
+            aux, = np.nonzero(
+                (S21dB[0:int(iDel[nn])] >= S21dB[int(iDel[nn])] + 3) | (
+                        S21dB[0:int(iDel[nn])] <= S21dB[int(iDel[nn])] - 3))
+            if aux.size > 0:
+                iBW3dB[2 * nn] = aux[-1]
+            aux, = np.nonzero(
+                (S21dB[int(iDel[nn]):-1] >= S21dB[int(iDel[nn])] + 3) | (
+                        S21dB[int(iDel[nn]):-1] <= S21dB[int(iDel[nn])] - 3))
+            if aux.size > 0:
+                iBW3dB[2 * nn + 1] = aux[0] + int(iDel[nn])
+        else:
+            err[nn] = 1
+    warnings.filterwarnings("default")
+    return iDel, Del, S21, S11, S22, iBW, iBW1dB, iBW3dB, err
+
+
+# TODO: Delete deprecated functions
+# funcion deprecated
+# for i, _ in enumerate(mdelIDX):
+#     if not np.isnan(mdelIDX[i]):
+#         # NGD BANDWIDTH -> iBW
+#         # Find positive delays at the left side of NGD point
+#         aux, = np.nonzero(delay[0:mdelIDX[i]] >= 0)
+#         if aux.size > 0:
+#             # Save last positive delay
+#             iBW[2 * i] = aux[-1]
+#         # Find positive delay at the right side of NGD point
+#         aux, = np.nonzero(delay[mdelIDX[i]:] >= 0)
+#         if aux.size > 0:
+#             # Save first positive delay
+#             iBW[2 * i + 1] = aux[0] + mdelIDX[i]
+#
+#         # 1DB BANDWIDTH -> iBW1dB
+#         aux, = np.nonzero(
+#             (S21dB[0:mdelIDX[i]] >= S21dB[mdelIDX[i]] + 1) | (S21dB[0:mdelIDX[i]] <= S21dB[mdelIDX[i]] - 1))
+#         if aux.size > 0:
+#             iBW1dB[2 * i] = aux[-1]
+#         aux, = np.nonzero(
+#             (S21dB[mdelIDX[i]:-1] >= S21dB[mdelIDX[i]] + 1) | (S21dB[mdelIDX[i]:-1] <= S21dB[mdelIDX[i]] - 1))
+#         if aux.size > 0:
+#             iBW1dB[2 * i + 1] = aux[0] + mdelIDX[i]
+#
+#         # 3DB BANDWIDTH -> iBW3dB
+#         aux, = np.nonzero(
+#             (S21dB[0:mdelIDX[i]] >= S21dB[mdelIDX[i]] + 3) | (S21dB[0:mdelIDX[i]] <= S21dB[mdelIDX[i]] - 3))
+#         if aux.size > 0:
+#             iBW3dB[2 * i] = aux[-1]
+#         aux, = np.nonzero(
+#             (S21dB[mdelIDX[i]:-1] >= S21dB[mdelIDX[i]] + 3) | (S21dB[mdelIDX[i]:-1] <= S21dB[mdelIDX[i]] - 3))
+#         if aux.size > 0:
+#             iBW3dB[2 * i + 1] = aux[0] + mdelIDX[i]
+# return iBW, iBW1dB, iBW3dB
 
 def get3Zeros_deprecated(delay):
     # Return the index of Local minimuns
@@ -156,8 +275,8 @@ def get3Zeros_deprecated(delay):
         mIDX[2] = TF2[prom2[0]] + 1099
     return mIDX
 
-def get_BW(delay, mdelIDX, mdel):
-    # TODO: Quitar comprobaciones para sacarlas al main
+
+def get_BW_deprecated(delay, mdelIDX, mdel):
     warnings.filterwarnings("ignore")
     iBW = np.empty((6))
     iBW[:] = np.NaN
@@ -172,8 +291,8 @@ def get_BW(delay, mdelIDX, mdel):
     warnings.filterwarnings("default")
     return iBW
 
-def get_BW1dB(S21, mdelIDX, mdel):
-    # TODO: Quitar comprobaciones para sacarlas al main
+
+def get_BW1dB_deprecated(S21, mdelIDX, mdel):
     warnings.filterwarnings("ignore")
     iBW1dB = np.empty((6))
     iBW1dB[:] = np.NaN
@@ -189,8 +308,8 @@ def get_BW1dB(S21, mdelIDX, mdel):
     warnings.filterwarnings("default")
     return iBW1dB
 
-def get_BW3dB(S21, mdelIDX, mdel):
-    # TODO: Quitar comprobaciones para sacarlas al main
+
+def get_BW3dB_deprecated(S21, mdelIDX, mdel):
     warnings.filterwarnings("ignore")
     iBW3dB = np.empty((6))
     iBW3dB[:] = np.NaN
