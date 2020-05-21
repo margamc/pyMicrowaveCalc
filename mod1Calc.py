@@ -40,6 +40,7 @@ xRange = range(lenRZ)
 
 
 def calcular(counter):
+    t = time.time()
     DATA = list()
     ERRORES = list()
     m = np.array(counter)[0]
@@ -69,12 +70,17 @@ def calcular(counter):
     # end o -> R2
     # end n -> Z1
     # end m -> R1
-
+    elapsed = time.time() - t
+    t2 = time.time()
     filename = str(int(R1[m])).zfill(3) + "R1" + str(
         int(Z1[n])).zfill(3) + "Z1.mat"
-    sc.savemat(foldername + "/" + filename, {'data': DATA, 'errors': ERRORES}, do_compression=True)
+    sc.savemat(foldername + "/" + filename, {'data': DATA}, do_compression=True)
+    sc.savemat(foldername + "_errors" + "/" + "errors_" + filename, {'errors': ERRORES}, do_compression=True)
+    elapsed2 = time.time() - t2
+    elapsed3 = time.time() - t
     print("Archivo " + filename + " creado." +
-          " [" + datetime.now().strftime('%H:%M:%S.%f')[:-4] + "]")
+          " [" + datetime.now().strftime('%H:%M:%S.%f')[:-4] + "] | Bucle = " + str(elapsed) + " Guardado = " + str(
+        elapsed2) + " Total = " + str(elapsed3))
     return
 
 
@@ -83,6 +89,8 @@ if __name__ == "__main__":
     print("Comienzo de ejecución. [" +
           datetime.now().strftime('%H:%M:%S.%f')[:-4] + "]")
     aux = list()
+    if not os.path.exists(foldername + "_errors"):
+        os.makedirs(foldername + "_errors")
     if not os.path.exists(foldername):
         os.makedirs(foldername)
     else:
@@ -100,6 +108,7 @@ if __name__ == "__main__":
     # end
     print(str(np.shape(contador)[0]) + " casos a computar con " + str(multiprocessing.cpu_count()) + " núcleos.")
     p = multiprocessing.Pool(multiprocessing.cpu_count())
+    # p = multiprocessing.Pool(6)
     p.map(calcular, contador)
     p.close()
     p.join()
