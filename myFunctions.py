@@ -3,6 +3,40 @@ import warnings
 from scipy.signal import find_peaks
 
 
+def fCalcSPMod3(t2, r1, z1, r2, r3, z2, r4, z3, r5, z0, fn):
+    warnings.filterwarnings("ignore")
+    y1 = 1 / z1 if (z1 != 0) else 0
+    y2 = 1 / z2 if (z2 != 0) else 0
+    y3 = 1 / z3 if (z3 != 0) else 0
+
+    y0 = 1 / z0 if (z0 != 0) else 0
+    lenfn = fn.size
+
+    THETA1A = np.pi * fn
+    THETA2A = t2 * fn
+    THETA2B = ((2 * np.pi) - t2) * fn
+    R1 = np.array([[1, r1], [0, 1]])
+    R2 = np.array([[1, r2], [0, 1]])
+    R3 = np.array([[1, r3], [0, 1]])
+    R4 = np.array([[1, r4], [0, 1]])
+    R5 = np.array([[1, r5], [0, 1]])
+    R1 = np.tile(R1, (lenfn, 1, 1))
+    R2 = np.tile(R2, (lenfn, 1, 1))
+    R3 = np.tile(R3, (lenfn, 1, 1))
+    R4 = np.tile(R4, (lenfn, 1, 1))
+    R5 = np.tile(R5, (lenfn, 1, 1))
+    TL1 = np.stack([np.stack([np.cos(THETA1A), 1j * z1 * np.sin(THETA1A)], axis=-1),
+                    np.stack([1j * y1 * np.sin(THETA1A), np.cos(THETA1A)], axis=-1)], axis=1)
+    TL2 = np.stack([np.stack([np.cos(THETA2A), 1j * z2 * np.sin(THETA2A)], axis=-1),
+                    np.stack([1j * y2 * np.sin(THETA2A), np.cos(THETA2A)], axis=-1)], axis=1)
+    TL3 = np.stack([np.stack([np.cos(THETA2B), 1j * z3 * np.sin(THETA2B)], axis=-1),
+                    np.stack([1j * y3 * np.sin(THETA2B), np.cos(THETA2B)], axis=-1)], axis=1)
+    PATH1 = R1 @ TL1 @ R2
+    PATH2 = R3 @ TL2 @ R4 @ TL3 @ R5
+    warnings.filterwarnings("default")
+    return fPath2SP(PATH1, PATH2, y0)
+
+
 def fCalcSPMod2(t1, r1, z1, r2, z2, r3, r4, z3, r5, z0, fn):
     warnings.filterwarnings("ignore")
     y1 = 1 / z1 if (z1 != 0) else 0
