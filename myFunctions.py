@@ -155,7 +155,7 @@ def getMeasures(nZeros, delay, SS21, SS11, SS22):
     iBW3dB = np.repeat(np.NaN, 2 * nZeros)
     S21dB = 20 * np.log10(abs(SS21))
     # Auxiliar for errors
-    err = np.repeat(np.NaN, nZeros)
+    err = np.repeat(0, nZeros)
     for nn, idel in enumerate(iDel):
         if not np.isnan(idel):
             if idel >= 0:

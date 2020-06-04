@@ -45,7 +45,6 @@ def calcular(counter):
     ERRORES = list()
     m = np.array(counter)[0]
     n = np.array(counter)[1]
-
     # for m in x21:  # R1
     # for n in x21:  # Z1
     for o in xRange:  # R2
@@ -56,7 +55,6 @@ def calcular(counter):
                     group_delay = -(np.diff(my.unwrap(np.angle(SS21), np.pi)) / np.diff(f)) / (2 * np.pi)
                     iDel, Del, S21, S11, S22, iBW, iBW1dB, iBW3dB, err = my.getMeasures(nZeros, group_delay, SS21, SS11,
                                                                                         SS22)
-
                     if any(err):
                         errores = np.concatenate(([R1[m]], [Z1[n]], [R2[o]], [R3[p]], [Z2[q]], [R4[r]], err))
                         ERRORES.append(errores)
