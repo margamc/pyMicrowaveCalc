@@ -10,7 +10,7 @@ import scipy.io as sc
 j = 8
 foldername = "080T1"
 lenRZ = 11  # 11 21
-lenT = 19  # 37 73
+lenT = 37  # 37 73
 nZeros = 3
 
 R = np.linspace(0, 100, num=lenRZ)
@@ -30,7 +30,6 @@ elif nZeros == 2:
 # 0 - 999 --> 1 zero
 # 900 - 1200 --> 2 zeros
 # 1001 - end --> 3 zeros
-
 
 z0 = 50
 f0 = 1e9
@@ -79,7 +78,7 @@ def calcular(counter):
     # end k -> R1
     # end j -> T2
 
-    filename = str(round(T2[j] * 180 / np.pi)).zfill(3) + "T2" + str(int(R[k])).zfill(3) + "R1" + str(
+    filename = str(int(round(T2[j] * 180 / np.pi))).zfill(3) + "T2" + str(int(R[k])).zfill(3) + "R1" + str(
         int(Z[l])).zfill(3) + "Z1" + str(int(R[m])).zfill(3) + "R2.mat"
 
     sc.savemat(foldername + "/" + filename, {'data': DATA}, do_compression=True)

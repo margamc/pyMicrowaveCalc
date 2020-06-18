@@ -7,8 +7,8 @@ import itertools as it
 import multiprocessing
 import scipy.io as sc
 
-j = 8
-foldername = "080T1"
+j = 9
+foldername = "090T1"
 lenRZ = 11  # 11 21
 lenT = 19  # 19 37
 nZeros = 3
@@ -87,7 +87,7 @@ def calcular(counter):
     # end k -> R1
     # end j -> T1
 
-    filename = str(int(T1[j] * 180 / np.pi)).zfill(3) + "T1" + str(int(R[k])).zfill(3) + "R1" + str(
+    filename = str(int(round(T1[j] * 180 / np.pi))).zfill(3) + "T1" + str(int(R[k])).zfill(3) + "R1" + str(
         int(Z[l])).zfill(3) + "Z1" + str(int(R[m])).zfill(3) + "R2.mat"
 
     sc.savemat(foldername + "/" + filename, {'data': DATA}, do_compression=True)
