@@ -1,20 +1,48 @@
+# -----------------------------------------------------------
+# Functions for Microwave Network Analysis
+#
+# 2020 - Margarita Martínez-Coves
+# Master Thesis: "Estudio de estructuras con retardo de grupo
+# negativo en tecnología microstrip"
+# Universitat d'Alacant (Spain)
+# email martinezcoves.m@gmail.com
+# -----------------------------------------------------------
+
 import numpy as np
 import warnings
 from scipy.signal import find_peaks
 
+# The following three functions: fCalcSPMod1, fCalcSPMod2 and fCalcSPMod3 are particular for each Model of this project.
+# They all work in a similar way, but for different number or configuration of variables. In fact, fCalcSPMod3 and
+# fCalcSPMod2 could work for Model 1 if no-used variables are defined with a fixed value. I had implemented particular
+# functions for each Model in order to speed up the process.
 
+# Only fCalcMod3 is explained by comments, 1 and 2 are equivalent.
 def fCalcSPMod3(t2, r1, z1, r2, r3, z2, r4, z3, r5, z0, fn):
+    # Calculation of equivalent ABCD matrix for each branch (parallel). Each branch is composed by Resistors and
+    # Transmission Lines in Serie.
+    # _____________ R1 _ Z1 _ R2 _____________  [PATH 1]
+    #   |                                  |
+    #   |_ R3 _ Z2(t2) _ R4 _ Z3(t2) _ R5 _|    [PATH 2]
     warnings.filterwarnings("ignore")
+    # Admittance for each TL
     y1 = 1 / z1 if (z1 != 0) else 0
     y2 = 1 / z2 if (z2 != 0) else 0
     y3 = 1 / z3 if (z3 != 0) else 0
-
+    # Admittance for ports
     y0 = 1 / z0 if (z0 != 0) else 0
-    lenfn = fn.size
 
-    THETA1A = np.pi * fn
-    THETA2A = t2 * fn
-    THETA2B = ((2 * np.pi) - t2) * fn
+    # THETA is the normalized electrical length (theta = beta * l) for each normalized frequency and t2, which defines
+    # the relation between TL lengths of the same branch.
+    lenfn = fn.size
+    THETA1A = np.pi * fn                    # THETA1A is for Z1 (always length = pi)
+    THETA2A = t2 * fn                       # THETA2A is for Z2 (variable length = t2)
+    THETA2B = ((2 * np.pi) - t2) * fn       # THETA2B is for Z3 (variable length = 2pi - t2)
+
+    # Following lines are necessary to create Resistance equivalent ABCD matrix ( [1, r ; 0, 1]), but multidimensional
+    # in order to be able to compute all frequency values through a matrix multiplication. So each R matrix is an array
+    # with the same 2x2 ABCD matrix for each frequency value (lenfn) --> ( lenfn x 2 x 2 ). lenfn must be the
+    # 1st dimension in Python.
     R1 = np.array([[1, r1], [0, 1]])
     R2 = np.array([[1, r2], [0, 1]])
     R3 = np.array([[1, r3], [0, 1]])
@@ -25,12 +53,16 @@ def fCalcSPMod3(t2, r1, z1, r2, r3, z2, r4, z3, r5, z0, fn):
     R3 = np.tile(R3, (lenfn, 1, 1))
     R4 = np.tile(R4, (lenfn, 1, 1))
     R5 = np.tile(R5, (lenfn, 1, 1))
+    # Creation of TL equivalent ABCD matrix ( [cos(bl), j*Z*sin(bl) ; j*Y*sin(bl), cos(bl)] ) for each frequency value.
+    # Size of each TL matrix is lenfn x 2 x 2. lenfn must be the 1st dimension too.
     TL1 = np.stack([np.stack([np.cos(THETA1A), 1j * z1 * np.sin(THETA1A)], axis=-1),
                     np.stack([1j * y1 * np.sin(THETA1A), np.cos(THETA1A)], axis=-1)], axis=1)
     TL2 = np.stack([np.stack([np.cos(THETA2A), 1j * z2 * np.sin(THETA2A)], axis=-1),
                     np.stack([1j * y2 * np.sin(THETA2A), np.cos(THETA2A)], axis=-1)], axis=1)
     TL3 = np.stack([np.stack([np.cos(THETA2B), 1j * z3 * np.sin(THETA2B)], axis=-1),
                     np.stack([1j * y3 * np.sin(THETA2B), np.cos(THETA2B)], axis=-1)], axis=1)
+    # Matrix multiplication for each path. Python is able to compute [2x2] * [2x2] for each first dimension (lenfn).
+    # Size of each PATH (ABCD matrix) is lenfn x 2 x 2. So, it is the ABCD matrix equivalent for each frequency value.
     PATH1 = R1 @ TL1 @ R2
     PATH2 = R3 @ TL2 @ R4 @ TL3 @ R5
     warnings.filterwarnings("default")
@@ -38,17 +70,20 @@ def fCalcSPMod3(t2, r1, z1, r2, r3, z2, r4, z3, r5, z0, fn):
 
 
 def fCalcSPMod2(t1, r1, z1, r2, z2, r3, r4, z3, r5, z0, fn):
+    # ____ R1 _ Z1(t1) _ R2 _ Z2(t1) _ R3 ____  [PATH 1]
+    #   |                                  |
+    #   |__________ R4 _ Z3 _ R5 __________|    [PATH 2]
     warnings.filterwarnings("ignore")
     y1 = 1 / z1 if (z1 != 0) else 0
     y2 = 1 / z2 if (z2 != 0) else 0
     y3 = 1 / z3 if (z3 != 0) else 0
 
     y0 = 1 / z0 if (z0 != 0) else 0
-    lenfn = fn.size
 
-    THETA1A = t1 * fn
-    THETA1B = (np.pi - t1) * fn
-    THETA2A = 2 * np.pi * fn
+    lenfn = fn.size
+    THETA1A = t1 * fn                       # THETA1A is for Z1
+    THETA1B = (np.pi - t1) * fn             # THETA1B is for Z2
+    THETA2A = 2 * np.pi * fn                # THETA2A is for Z3
     R1 = np.array([[1, r1], [0, 1]])
     R2 = np.array([[1, r2], [0, 1]])
     R3 = np.array([[1, r3], [0, 1]])
@@ -72,15 +107,18 @@ def fCalcSPMod2(t1, r1, z1, r2, z2, r3, r4, z3, r5, z0, fn):
 
 
 def fCalcSPMod1(r1, z1, r2, r3, z2, r4, z0, fn):
+    # _____________ R1 _ Z1 _ R2 _____________  [PATH 1]
+    #   |                                  |
+    #   |__________ R3 _ Z2 _ R4 __________|    [PATH 2]
     warnings.filterwarnings("ignore")
     y1 = 1 / z1 if (z1 != 0) else 0
     y2 = 1 / z2 if (z2 != 0) else 0
 
     y0 = 1 / z0 if (z0 != 0) else 0
-    lenfn = fn.size
 
-    THETA1A = np.pi * fn
-    THETA2A = 2 * np.pi * fn
+    lenfn = fn.size
+    THETA1A = np.pi * fn                    # THETA1A is for Z1
+    THETA2A = 2 * np.pi * fn                # THETA2A is for Z2
     R1 = np.array([[1, r1], [0, 1]])
     R2 = np.array([[1, r2], [0, 1]])
     R3 = np.array([[1, r3], [0, 1]])
@@ -100,7 +138,9 @@ def fCalcSPMod1(r1, z1, r2, r3, z2, r4, z0, fn):
 
 
 def fPath2SP(PATH1, PATH2, y0):
+    # This function converts ABCD parameters to Y-parameters, SUM both paths and convert the result to S-Parameters
     warnings.filterwarnings("ignore")
+    # ABCD matrix -> Y matrix (for both paths)
     A1 = PATH1[:, 0, 0]
     B1 = PATH1[:, 0, 1]
     C1 = PATH1[:, 1, 0]
@@ -115,7 +155,9 @@ def fPath2SP(PATH1, PATH2, y0):
     Y_path2 = np.stack(
         [np.stack([(D2 / B2), ((B2 * C2 - A2 * D2) / (B2))], axis=-1), np.stack([(-1 / B2), (A2 / B2)], axis=-1)],
         axis=1)
+    # SUM paths, parallel equivalent
     Y = Y_path1 + Y_path2
+    # Y matrix -> SP matrix in separated arrays for each component (S11, S12, S21, S22)
     Y11 = Y[:, 0, 0]
     Y12 = Y[:, 0, 1]
     Y21 = Y[:, 1, 0]
@@ -130,6 +172,9 @@ def fPath2SP(PATH1, PATH2, y0):
 
 
 def unwrap(q, phase):
+    # THIS FUNCTION IS BASED ON MATLAB UNWRAP IMPLEMENTATION.
+    # Adaptation of unwrap function to avoid calculating with Not A Number values.
+    # Output contains NaN values where there was one, but the rest of the values are well calculated.
     # Find NaN's and Inf's
     p = q
     indf = np.isfinite(p)
@@ -139,7 +184,7 @@ def unwrap(q, phase):
 
 
 def getLocalZero(delay):
-    # Return the local minimum avoiding widths < 1 (maths indeterminacy) and positive delays
+    # Return the local minimum position avoiding widths < 1 (maths indeterminacy) and positive delays
     # If out is positive -> Unique or widest and minimum point
     # If out is negative -> Minimum point but not the widest
     # If out is NaN -> No Local Minimum found
@@ -161,11 +206,17 @@ def getLocalZero(delay):
 
 
 def getNZeros(nZeros, delay):
+    # Call getLocalZeros() for different number of desired Zeros.
+    # Returns iDel array, which contains the positions of Zeros (Negative Delays)
     iDel = np.repeat(np.NaN, nZeros)
+    # Always look for left zero (freq < 1)
     iDel[0] = getLocalZero(delay[0:999])
+    # Look for central zero (useful for symmetrical designs with 3 zeros)
     if nZeros >= 2:
         idel = getLocalZero(delay[900:1200])
+        # Adapt relative to absolute position if a valid zero is found (idel > 0) [see getLocalZero() comments]
         iDel[1] = idel + 900 if idel >= 0 else idel - 900
+    # Look for right zero (freq > 1) (useful for non-symmetrical designs)
     if nZeros == 3:
         idel = getLocalZero(delay[1001:-1])
         iDel[2] = idel + 1001 if idel >= 0 else idel - 1001
@@ -244,117 +295,3 @@ def getMeasures(nZeros, delay, SS21, SS11, SS22):
             err[nn] = 1
     warnings.filterwarnings("default")
     return iDel, Del, S21, S11, S22, iBW, iBW1dB, iBW3dB, err
-
-
-# TODO: Delete deprecated functions
-# funcion deprecated
-# for i, _ in enumerate(mdelIDX):
-#     if not np.isnan(mdelIDX[i]):
-#         # NGD BANDWIDTH -> iBW
-#         # Find positive delays at the left side of NGD point
-#         aux, = np.nonzero(delay[0:mdelIDX[i]] >= 0)
-#         if aux.size > 0:
-#             # Save last positive delay
-#             iBW[2 * i] = aux[-1]
-#         # Find positive delay at the right side of NGD point
-#         aux, = np.nonzero(delay[mdelIDX[i]:] >= 0)
-#         if aux.size > 0:
-#             # Save first positive delay
-#             iBW[2 * i + 1] = aux[0] + mdelIDX[i]
-#
-#         # 1DB BANDWIDTH -> iBW1dB
-#         aux, = np.nonzero(
-#             (S21dB[0:mdelIDX[i]] >= S21dB[mdelIDX[i]] + 1) | (S21dB[0:mdelIDX[i]] <= S21dB[mdelIDX[i]] - 1))
-#         if aux.size > 0:
-#             iBW1dB[2 * i] = aux[-1]
-#         aux, = np.nonzero(
-#             (S21dB[mdelIDX[i]:-1] >= S21dB[mdelIDX[i]] + 1) | (S21dB[mdelIDX[i]:-1] <= S21dB[mdelIDX[i]] - 1))
-#         if aux.size > 0:
-#             iBW1dB[2 * i + 1] = aux[0] + mdelIDX[i]
-#
-#         # 3DB BANDWIDTH -> iBW3dB
-#         aux, = np.nonzero(
-#             (S21dB[0:mdelIDX[i]] >= S21dB[mdelIDX[i]] + 3) | (S21dB[0:mdelIDX[i]] <= S21dB[mdelIDX[i]] - 3))
-#         if aux.size > 0:
-#             iBW3dB[2 * i] = aux[-1]
-#         aux, = np.nonzero(
-#             (S21dB[mdelIDX[i]:-1] >= S21dB[mdelIDX[i]] + 3) | (S21dB[mdelIDX[i]:-1] <= S21dB[mdelIDX[i]] - 3))
-#         if aux.size > 0:
-#             iBW3dB[2 * i + 1] = aux[0] + mdelIDX[i]
-# return iBW, iBW1dB, iBW3dB
-
-def get3Zeros_deprecated(delay):
-    # Return the index of Local minimuns
-    mIDX = np.array([np.nan, np.nan, np.nan])
-    # Split into 3 freq ranges
-    TF1, d1 = find_peaks(-delay[519:899], prominence=(None, None));
-    TFc, dc = find_peaks(-delay[899:1099], prominence=(None, None));
-    TF2, d2 = find_peaks(-delay[1099:1481], prominence=(None, None));
-    if TF1.size == 1:
-        mIDX[0] = TF1[0] + 519;
-    elif TF1.size > 1:
-        prom1 = np.where(d1["prominences"] == d1["prominences"].max())[0]
-        mIDX[0] = TF1[prom1[0]] + 519
-
-    if TFc.size == 1:
-        mIDX[1] = TFc[0] + 899;
-    elif TFc.size > 1:
-        promc = np.where(dc["prominences"] == dc["prominences"].max())[0]
-        mIDX[1] = TFc[promc[0]] + 899
-
-    if TF2.size == 1:
-        mIDX[2] = TF2[0] + 1099;
-    elif TF2.size > 1:
-        prom2 = np.where(d2["prominences"] == d2["prominences"].max())[0]
-        mIDX[2] = TF2[prom2[0]] + 1099
-    return mIDX
-
-
-def get_BW_deprecated(delay, mdelIDX, mdel):
-    warnings.filterwarnings("ignore")
-    iBW = np.empty((6))
-    iBW[:] = np.NaN
-    for i, _ in enumerate(mdelIDX):
-        if ((not np.isnan(mdelIDX[i])) and (mdel[i] < 0)):
-            aux, = np.nonzero(delay[0:mdelIDX[i]] >= 0)
-            if aux.size > 0:
-                iBW[2 * i] = aux[-1]
-            aux, = np.nonzero(delay[mdelIDX[i]:-1] >= 0)
-            if aux.size > 0:
-                iBW[2 * i + 1] = aux[0] + mdelIDX[i]
-    warnings.filterwarnings("default")
-    return iBW
-
-
-def get_BW1dB_deprecated(S21, mdelIDX, mdel):
-    warnings.filterwarnings("ignore")
-    iBW1dB = np.empty((6))
-    iBW1dB[:] = np.NaN
-    S21dB = 20 * np.log10(abs(S21))
-    for i, _ in enumerate(mdelIDX):
-        if ((not np.isnan(mdelIDX[i])) and (mdel[i] < 0)):
-            aux, = np.nonzero(S21dB[0:mdelIDX[i]] >= S21dB[mdelIDX[i]] + 1)
-            if aux.size > 0:
-                iBW1dB[2 * i] = aux[-1]
-            aux, = np.nonzero(S21dB[mdelIDX[i]:-1] >= S21dB[mdelIDX[i]] + 1)
-            if aux.size > 0:
-                iBW1dB[2 * i + 1] = aux[0] + mdelIDX[i]
-    warnings.filterwarnings("default")
-    return iBW1dB
-
-
-def get_BW3dB_deprecated(S21, mdelIDX, mdel):
-    warnings.filterwarnings("ignore")
-    iBW3dB = np.empty((6))
-    iBW3dB[:] = np.NaN
-    S21dB = 20 * np.log10(abs(S21))
-    for i, _ in enumerate(mdelIDX):
-        if ((not np.isnan(mdelIDX[i])) and (mdel[i] < 0)):
-            aux, = np.nonzero(S21dB[0:mdelIDX[i]] >= S21dB[mdelIDX[i]] + 3)
-            if aux.size > 0:
-                iBW3dB[2 * i] = aux[-1]
-            aux, = np.nonzero(S21dB[mdelIDX[i]:-1] >= S21dB[mdelIDX[i]] + 3)
-            if aux.size > 0:
-                iBW3dB[2 * i + 1] = aux[0] + mdelIDX[i]
-    warnings.filterwarnings("default")
-    return iBW3dB

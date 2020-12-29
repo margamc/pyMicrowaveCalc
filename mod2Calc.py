@@ -1,3 +1,13 @@
+# -----------------------------------------------------------
+# Main script for Model 2
+#
+# 2020 - Margarita Martínez-Coves
+# Master Thesis: "Estudio de estructuras con retardo de grupo
+# negativo en tecnología microstrip"
+# Universitat d'Alacant (Spain)
+# email martinezcoves.m@gmail.com
+# -----------------------------------------------------------
+
 import numpy as np
 import myFunctions as my
 from datetime import datetime

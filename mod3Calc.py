@@ -1,3 +1,13 @@
+# -----------------------------------------------------------
+# Main script for Model 3
+#
+# 2020 - Margarita Martínez-Coves
+# Master Thesis: "Estudio de estructuras con retardo de grupo
+# negativo en tecnología microstrip"
+# Universitat d'Alacant (Spain)
+# email martinezcoves.m@gmail.com
+# -----------------------------------------------------------
+
 import numpy as np
 import myFunctions as my
 from datetime import datetime
@@ -7,10 +17,10 @@ import itertools as it
 import multiprocessing
 import scipy.io as sc
 
-j = 8
+j = 8               # Is the T value
 foldername = "080T1"
-lenRZ = 11  # 11 21
-lenT = 37  # 37 73
+lenRZ = 11  # 11 21 # 11 for increments of 10, 21 for increments of 21.
+lenT = 37  # 37 73  # 37 for increments of 10, 73 for increments of 5.
 nZeros = 3
 
 R = np.linspace(0, 100, num=lenRZ)
